@@ -237,6 +237,8 @@ struct _zhandle {
     long long last_zxid;                // last zookeeper ID
     auth_list_head_t auth_h;            // authentication data list
     log_callback_fn log_callback;       // Callback for logging (falls back to logging to stderr)
+    log_callback_ext_fn log_callback_ext; // Extended callback for logging (falls back to log_callback)
+    const void *log_callback_ext_context; // user context for log_callback_ext
     int io_count;			// counts the number of iterations of do_io
 
     // Primer storage

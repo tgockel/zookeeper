@@ -116,7 +116,7 @@ unsigned __stdcall do_completion( void * );
 
 int handle_error(zhandle_t* zh, SOCKET sock, char* message)
 {
-       LOG_ERROR(LOGCALLBACK(zh), "%s. %d",message, WSAGetLastError());
+       LOG_ERROR(zh, "%s. %d",message, WSAGetLastError());
        closesocket (sock);
        return -1;
 }
@@ -131,7 +131,7 @@ int create_socket_pair(zhandle_t* zh, SOCKET fds[2])
        
     SOCKET lst=socket(AF_INET, SOCK_STREAM,IPPROTO_TCP); 
     if (lst ==  INVALID_SOCKET ){
-       LOG_ERROR(LOGCALLBACK(zh), "Error creating socket. %d",WSAGetLastError());
+       LOG_ERROR(zh, "Error creating socket. %d",WSAGetLastError());
        return -1;
     }
     memset(&inaddr, 0, sizeof(inaddr)); 
@@ -218,7 +218,7 @@ void start_threads(zhandle_t* zh)
     // use api_prolog() to make sure zhandle doesn't get destroyed
     // while initialization is in progress
     api_prolog(zh);
-    LOG_DEBUG(LOGCALLBACK(zh), "starting threads...");
+    LOG_DEBUG(zh, "starting threads...");
     rc=pthread_create(&adaptor->io, 0, do_io, zh);
     assert("pthread_create() failed for the IO thread"&&!rc);
     rc=pthread_create(&adaptor->completion, 0, do_completion, zh);
@@ -232,17 +232,17 @@ int adaptor_init(zhandle_t *zh)
     pthread_mutexattr_t recursive_mx_attr;
     struct adaptor_threads *adaptor_threads = calloc(1, sizeof(*adaptor_threads));
     if (!adaptor_threads) {
-        LOG_ERROR(LOGCALLBACK(zh), "Out of memory");
+        LOG_ERROR(zh, "Out of memory");
         return -1;
     }
 
     /* We use a pipe for interrupting select() in unix/sol and socketpair in windows. */
 #ifdef WIN32   
     if (create_socket_pair(zh, adaptor_threads->self_pipe) == -1){
-       LOG_ERROR(LOGCALLBACK(zh), "Can't make a socket.");
+       LOG_ERROR(zh, "Can't make a socket.");
 #else
     if(pipe(adaptor_threads->self_pipe)==-1) {
-        LOG_ERROR(LOGCALLBACK(zh), "Can't make a pipe %d",errno);
+        LOG_ERROR(zh, "Can't make a pipe %d",errno);
 #endif
         free(adaptor_threads);
         return -1;
@@ -365,7 +365,7 @@ void *do_io(void *v)
 
     api_prolog(zh);
     notify_thread_ready(zh);
-    LOG_DEBUG(LOGCALLBACK(zh), "started IO thread");
+    LOG_DEBUG(zh, "started IO thread");
     fds[0].fd=adaptor_threads->self_pipe[0];
     fds[0].events=POLLIN;
     while(!zh->close_requested) {
@@ -400,7 +400,7 @@ void *do_io(void *v)
     struct adaptor_threads *adaptor_threads = zh->adaptor_priv;
     api_prolog(zh);
     notify_thread_ready(zh);
-    LOG_DEBUG(LOGCALLBACK(zh), "started IO thread");
+    LOG_DEBUG(zh, "started IO thread");
     
     while(!zh->close_requested) {      
         struct timeval tv;
@@ -440,7 +440,7 @@ void *do_io(void *v)
             }
         }
         else if (rc < 0) {
-            LOG_ERROR(LOGCALLBACK(zh), ("select() failed %d [%d].", rc, WSAGetLastError()));
+            LOG_ERROR(zh, ("select() failed %d [%d].", rc, WSAGetLastError()));
 
             // Clear interest events for zookeeper_process if select() fails.
             interest = 0;
@@ -455,7 +455,7 @@ void *do_io(void *v)
             break;
     }
     api_epilog(zh, 0);    
-    LOG_DEBUG(LOGCALLBACK(zh), "IO thread terminated");
+    LOG_DEBUG(zh, "IO thread terminated");
     return 0;
 }
 
@@ -468,7 +468,7 @@ void *do_completion(void *v)
     zhandle_t *zh = v;
     api_prolog(zh);
     notify_thread_ready(zh);
-    LOG_DEBUG(LOGCALLBACK(zh), "started completion thread");
+    LOG_DEBUG(zh, "started completion thread");
     while(!zh->close_requested) {
         pthread_mutex_lock(&zh->completions_to_process.lock);
         while(!zh->completions_to_process.head && !zh->close_requested) {
@@ -478,7 +478,7 @@ void *do_completion(void *v)
         process_completions(zh);
     }
     api_epilog(zh, 0);    
-    LOG_DEBUG(LOGCALLBACK(zh), "completion thread terminated");
+    LOG_DEBUG(zh, "completion thread terminated");
     return 0;
 }
 

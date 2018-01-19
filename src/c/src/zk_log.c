@@ -125,7 +125,7 @@ static const char* time_now(char* now_str){
     return now_str;
 }
 
-void log_message(log_callback_fn callback, ZooLogLevel curLevel,
+void log_message(const zhandle_t *zh, ZooLogLevel curLevel,
     int line, const char* funcName, const char* format, ...)
 {
     static const char* dbgLevelStr[]={"ZOO_INVALID","ZOO_ERROR","ZOO_WARN",
@@ -180,12 +180,21 @@ void log_message(log_callback_fn callback, ZooLogLevel curLevel,
     vsnprintf(buf+ofs, FORMAT_LOG_BUF_SIZE-1-ofs, format, va);
     va_end(va);
 
-    if (callback)
+    log_callback_ext_fn ext_callback;
+    void *ext_callback_context;
+    zoo_get_log_callback_ext(zh, &ext_callback, &ext_callback_context);
+    if (ext_callback)
     {
-        callback(buf);
+        ext_callback(zh, ext_callback_context, curLevel, buf);
     } else {
-        fprintf(zoo_get_log_stream(), "%s\n", buf);
-        fflush(zoo_get_log_stream());
+        log_callback_fn callback = zoo_get_log_callback(zh);
+        if (callback)
+        {
+            callback(buf);
+        } else {
+            fprintf(zoo_get_log_stream(), "%s\n", buf);
+            fflush(zoo_get_log_stream());
+        }
     }
 }
 
