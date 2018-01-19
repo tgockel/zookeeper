@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 extern ZOOAPI ZooLogLevel logLevel;
-#define LOGCALLBACK(_zh) zoo_get_log_callback(_zh)
+#define LOGCALLBACK(_zh) (_zh)
 #define LOGSTREAM NULL
 
 #define LOG_ERROR(_cb, ...) if(logLevel>=ZOO_LOG_LEVEL_ERROR) \
@@ -38,7 +38,7 @@ extern ZOOAPI ZooLogLevel logLevel;
 #define LOG_DEBUG(_cb, ...) if(logLevel==ZOO_LOG_LEVEL_DEBUG) \
     log_message(_cb, ZOO_LOG_LEVEL_DEBUG, __LINE__, __func__, __VA_ARGS__)
 
-ZOOAPI void log_message(log_callback_fn callback, ZooLogLevel curLevel,
+ZOOAPI void log_message(const zhandle_t *zh, ZooLogLevel curLevel,
     int line, const char* funcName, const char* format, ...);
 
 FILE* zoo_get_log_stream();

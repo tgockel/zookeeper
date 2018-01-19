@@ -449,7 +449,7 @@ typedef void (*watcher_fn)(zhandle_t *zh, int type,
  *
  * \param message message to be passed to the callback function.
  */
-typedef void (*log_callback_fn)(const char *message);
+typedef void (*log_callback_fn)(const zhandle_t *zh, const char *message);
 
 /**
  * \brief create a handle to used communicate with zookeeper.

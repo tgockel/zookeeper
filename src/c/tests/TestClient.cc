@@ -53,7 +53,7 @@ struct buff_struct_2 {
 #ifdef THREADED
 // For testing LogMessage Callback functionality
 list<string> logMessages;
-void logMessageHandler(const char* message) {
+void logMessageHandler(const zhandle_t *zh, const char* message) {
     cout << "Log Message Received: [" << message << "]" << endl;
     logMessages.push_back(message);
 }
