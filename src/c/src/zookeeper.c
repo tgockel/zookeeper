@@ -294,7 +294,7 @@ static socket_t zookeeper_connect(zhandle_t *, struct sockaddr_storage *, socket
  */
 static void abort_singlethreaded(zhandle_t *zh)
 {
-    LOG_ERROR(LOGCALLBACK(zh), "Sync completion used without threads");
+    LOG_ERROR(zh, "Sync completion used without threads");
     abort();
 }
 
@@ -662,7 +662,7 @@ static int resolve_hosts(const zhandle_t *zh, const char *hosts_in, addrvec_t *a
 
     hosts = strdup(hosts_in);
     if (hosts == NULL) {
-        LOG_ERROR(LOGCALLBACK(zh), "out of memory");
+        LOG_ERROR(zh, "out of memory");
         errno=ENOMEM;
         rc=ZSYSTEMERROR;
         goto fail;
@@ -677,7 +677,7 @@ static int resolve_hosts(const zhandle_t *zh, const char *hosts_in, addrvec_t *a
     // Allocate list inside avec
     rc = addrvec_alloc_capacity(avec, num_hosts);
     if (rc != 0) {
-        LOG_ERROR(LOGCALLBACK(zh), "out of memory");
+        LOG_ERROR(zh, "out of memory");
         errno=ENOMEM;
         rc=ZSYSTEMERROR;
         goto fail;
@@ -689,7 +689,7 @@ static int resolve_hosts(const zhandle_t *zh, const char *hosts_in, addrvec_t *a
         char *end_port_spec;
         int port;
         if (!port_spec) {
-            LOG_ERROR(LOGCALLBACK(zh), "no port in %s", host);
+            LOG_ERROR(zh, "no port in %s", host);
             errno=EINVAL;
             rc=ZBADARGUMENTS;
             goto fail;
@@ -698,7 +698,7 @@ static int resolve_hosts(const zhandle_t *zh, const char *hosts_in, addrvec_t *a
         port_spec++;
         port = strtol(port_spec, &end_port_spec, 0);
         if (!*port_spec || *end_port_spec || port == 0) {
-            LOG_ERROR(LOGCALLBACK(zh), "invalid port in %s", host);
+            LOG_ERROR(zh, "invalid port in %s", host);
             errno=EINVAL;
             rc=ZBADARGUMENTS;
             goto fail;
@@ -713,7 +713,7 @@ static int resolve_hosts(const zhandle_t *zh, const char *hosts_in, addrvec_t *a
 
         he = gethostbyname(host);
         if (!he) {
-            LOG_ERROR(LOGCALLBACK(zh), "could not resolve %s", host);
+            LOG_ERROR(zh, "could not resolve %s", host);
             errno=ENOENT;
             rc=ZBADARGUMENTS;
             goto fail;
@@ -724,7 +724,7 @@ static int resolve_hosts(const zhandle_t *zh, const char *hosts_in, addrvec_t *a
             if (addrs->count == addrs->capacity) {
                 rc = addrvec_grow_default(addrs);
                 if (rc != 0) {
-                    LOG_ERROR(LOGCALLBACK(zh), "out of memory");
+                    LOG_ERROR(zh, "out of memory");
                     errno=ENOMEM;
                     rc=ZSYSTEMERROR;
                     goto fail;
@@ -752,7 +752,7 @@ static int resolve_hosts(const zhandle_t *zh, const char *hosts_in, addrvec_t *a
             }
 #endif
             else {
-                LOG_WARN(LOGCALLBACK(zh), "skipping unknown address family %x for %s",
+                LOG_WARN(zh, "skipping unknown address family %x for %s",
                          addr->ss_family, hosts_in);
             }
         }
@@ -796,11 +796,11 @@ static int resolve_hosts(const zhandle_t *zh, const char *hosts_in, addrvec_t *a
             if (rc != 0) {
                 errno = getaddrinfo_errno(rc);
 #ifdef _WIN32
-                LOG_ERROR(LOGCALLBACK(zh), "Win32 message: %s\n", gai_strerror(rc));
+                LOG_ERROR(zh, "Win32 message: %s\n", gai_strerror(rc));
 #elif __linux__ && __GNUC__
-                LOG_ERROR(LOGCALLBACK(zh), "getaddrinfo: %s\n", gai_strerror(rc));
+                LOG_ERROR(zh, "getaddrinfo: %s\n", gai_strerror(rc));
 #else
-                LOG_ERROR(LOGCALLBACK(zh), "getaddrinfo: %s\n", strerror(errno));
+                LOG_ERROR(zh, "getaddrinfo: %s\n", strerror(errno));
 #endif
                 rc=ZSYSTEMERROR;
                 goto fail;
@@ -812,7 +812,7 @@ static int resolve_hosts(const zhandle_t *zh, const char *hosts_in, addrvec_t *a
             if (avec->count == avec->capacity) {
                 rc = addrvec_grow_default(avec);
                 if (rc != 0) {
-                    LOG_ERROR(LOGCALLBACK(zh), "out of memory");
+                    LOG_ERROR(zh, "out of memory");
                     errno=ENOMEM;
                     rc=ZSYSTEMERROR;
                     goto fail;
@@ -828,7 +828,7 @@ static int resolve_hosts(const zhandle_t *zh, const char *hosts_in, addrvec_t *a
                 addrvec_append_addrinfo(avec, res);
                 break;
             default:
-                LOG_WARN(LOGCALLBACK(zh), "skipping unknown address family %x for %s",
+                LOG_WARN(zh, "skipping unknown address family %x for %s",
                           res->ai_family, hosts_in);
                 break;
             }
@@ -1065,51 +1065,51 @@ static void log_env(zhandle_t *zh) {
   uid_t uid = 0;
 #endif
 
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:zookeeper.version=%s", PACKAGE_STRING);
+  LOG_INFO(zh, "Client environment:zookeeper.version=%s", PACKAGE_STRING);
 
 #ifdef HAVE_GETHOSTNAME
   gethostname(buf, sizeof(buf));
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:host.name=%s", buf);
+  LOG_INFO(zh, "Client environment:host.name=%s", buf);
 #else
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:host.name=<not implemented>");
+  LOG_INFO(zh, "Client environment:host.name=<not implemented>");
 #endif
 
 #ifdef HAVE_SYS_UTSNAME_H
   uname(&utsname);
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:os.name=%s", utsname.sysname);
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:os.arch=%s", utsname.release);
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:os.version=%s", utsname.version);
+  LOG_INFO(zh, "Client environment:os.name=%s", utsname.sysname);
+  LOG_INFO(zh, "Client environment:os.arch=%s", utsname.release);
+  LOG_INFO(zh, "Client environment:os.version=%s", utsname.version);
 #else
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:os.name=<not implemented>");
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:os.arch=<not implemented>");
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:os.version=<not implemented>");
+  LOG_INFO(zh, "Client environment:os.name=<not implemented>");
+  LOG_INFO(zh, "Client environment:os.arch=<not implemented>");
+  LOG_INFO(zh, "Client environment:os.version=<not implemented>");
 #endif
 
 #ifdef HAVE_GETLOGIN
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:user.name=%s", getlogin());
+  LOG_INFO(zh, "Client environment:user.name=%s", getlogin());
 #else
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:user.name=<not implemented>");
+  LOG_INFO(zh, "Client environment:user.name=<not implemented>");
 #endif
 
 #if defined(HAVE_GETUID) && defined(HAVE_GETPWUID_R)
   uid = getuid();
   if (!getpwuid_r(uid, &pw, buf, sizeof(buf), &pwp) && pwp) {
-    LOG_INFO(LOGCALLBACK(zh), "Client environment:user.home=%s", pw.pw_dir);
+    LOG_INFO(zh, "Client environment:user.home=%s", pw.pw_dir);
   } else {
-    LOG_INFO(LOGCALLBACK(zh), "Client environment:user.home=<NA>");
+    LOG_INFO(zh, "Client environment:user.home=<NA>");
   }
 #else
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:user.home=<not implemented>");
+  LOG_INFO(zh, "Client environment:user.home=<not implemented>");
 #endif
 
 #ifdef HAVE_GETCWD
   if (!getcwd(buf, sizeof(buf))) {
-    LOG_INFO(LOGCALLBACK(zh), "Client environment:user.dir=<toolong>");
+    LOG_INFO(zh, "Client environment:user.dir=<toolong>");
   } else {
-    LOG_INFO(LOGCALLBACK(zh), "Client environment:user.dir=%s", buf);
+    LOG_INFO(zh, "Client environment:user.dir=%s", buf);
   }
 #else
-  LOG_INFO(LOGCALLBACK(zh), "Client environment:user.dir=<not implemented>");
+  LOG_INFO(zh, "Client environment:user.dir=<not implemented>");
 #endif
 }
 
@@ -1118,7 +1118,8 @@ static void log_env(zhandle_t *zh) {
  */
 static zhandle_t *zookeeper_init_internal(const char *host, watcher_fn watcher,
         int recv_timeout, const clientid_t *clientid, void *context, int flags,
-        log_callback_fn log_callback)
+        log_callback_fn log_callback, log_callback_ext_fn log_callback_ext,
+        const void *log_callback_ext_context)
 {
     int errnosave = 0;
     zhandle_t *zh = NULL;
@@ -1130,17 +1131,19 @@ static zhandle_t *zookeeper_init_internal(const char *host, watcher_fn watcher,
         return 0;
     }
 
-    // Set log callback before calling into log_env
+    // Set log callbacks before calling into log_env
     zh->log_callback = log_callback;
+    zh->log_callback_ext = log_callback_ext;
+    zh->log_callback_ext_context = log_callback_ext_context;
     log_env(zh);
 
 #ifdef _WIN32
     if (Win32WSAStartup()){
-        LOG_ERROR(LOGCALLBACK(zh), "Error initializing ws2_32.dll");
+        LOG_ERROR(zh, "Error initializing ws2_32.dll");
         return 0;
     }
 #endif
-    LOG_INFO(LOGCALLBACK(zh), "Initiating client connection, host=%s sessionTimeout=%d watcher=%p"
+    LOG_INFO(zh, "Initiating client connection, host=%s sessionTimeout=%d watcher=%p"
           " sessionId=%#llx sessionPasswd=%s context=%p flags=%d",
               host,
               recv_timeout,
@@ -1236,14 +1239,22 @@ abort:
 zhandle_t *zookeeper_init(const char *host, watcher_fn watcher,
         int recv_timeout, const clientid_t *clientid, void *context, int flags)
 {
-    return zookeeper_init_internal(host, watcher, recv_timeout, clientid, context, flags, NULL);
+    return zookeeper_init_internal(host, watcher, recv_timeout, clientid, context, flags, NULL, NULL, NULL);
 }
 
 zhandle_t *zookeeper_init2(const char *host, watcher_fn watcher,
         int recv_timeout, const clientid_t *clientid, void *context, int flags,
         log_callback_fn log_callback)
 {
-    return zookeeper_init_internal(host, watcher, recv_timeout, clientid, context, flags, log_callback);
+    return zookeeper_init_internal(host, watcher, recv_timeout, clientid, context, flags, log_callback, NULL, NULL);
+}
+
+zhandle_t *zookeeper_init3(const char *host, watcher_fn watcher,
+        int recv_timeout, const clientid_t *clientid, void *context, int flags,
+        log_callback_ext_fn log_callback, const void *log_callback_context)
+{
+    return zookeeper_init_internal(host, watcher, recv_timeout, clientid, context, flags, NULL, log_callback,
+                                   log_callback_context);
 }
 
 /**
@@ -1254,7 +1265,7 @@ int zoo_set_servers(zhandle_t *zh, const char *hosts)
 {
     if (hosts == NULL)
     {
-        LOG_ERROR(LOGCALLBACK(zh), "New server list cannot be empty");
+        LOG_ERROR(zh, "New server list cannot be empty");
         return ZBADARGUMENTS;
     }
 
@@ -1293,10 +1304,10 @@ static int get_next_server_in_reconfig(zhandle_t *zh)
 {
     int take_new = drand48() <= zh->pNew;
 
-    LOG_DEBUG(LOGCALLBACK(zh), "[OLD] count=%d capacity=%d next=%d hasnext=%d",
+    LOG_DEBUG(zh, "[OLD] count=%d capacity=%d next=%d hasnext=%d",
                zh->addrs_old.count, zh->addrs_old.capacity, zh->addrs_old.next,
                addrvec_hasnext(&zh->addrs_old));
-    LOG_DEBUG(LOGCALLBACK(zh), "[NEW] count=%d capacity=%d next=%d hasnext=%d",
+    LOG_DEBUG(zh, "[NEW] count=%d capacity=%d next=%d hasnext=%d",
                zh->addrs_new.count, zh->addrs_new.capacity, zh->addrs_new.next,
                addrvec_hasnext(&zh->addrs_new));
 
@@ -1307,18 +1318,18 @@ static int get_next_server_in_reconfig(zhandle_t *zh)
             && (take_new || !addrvec_hasnext(&zh->addrs_old)))
     {
         addrvec_next(&zh->addrs_new, &zh->addr_cur);
-        LOG_DEBUG(LOGCALLBACK(zh), "Using next from NEW=%s", format_endpoint_info(&zh->addr_cur));
+        LOG_DEBUG(zh, "Using next from NEW=%s", format_endpoint_info(&zh->addr_cur));
         return 0;
     }
 
     // start taking old servers
     if (addrvec_hasnext(&zh->addrs_old)) {
         addrvec_next(&zh->addrs_old, &zh->addr_cur);
-        LOG_DEBUG(LOGCALLBACK(zh), "Using next from OLD=%s", format_endpoint_info(&zh->addr_cur));
+        LOG_DEBUG(zh, "Using next from OLD=%s", format_endpoint_info(&zh->addr_cur));
         return 0;
     }
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Failed to find either new or old");
+    LOG_DEBUG(zh, "Failed to find either new or old");
     memset(&zh->addr_cur, 0, sizeof(zh->addr_cur));
     return 1;
 }
@@ -1412,7 +1423,7 @@ char* sub_string(zhandle_t *zh, const char* server_path) {
         return (char *) server_path;
     //ZOOKEEPER-1027
     if (strncmp(server_path, zh->chroot, strlen(zh->chroot)) != 0) {
-        LOG_ERROR(LOGCALLBACK(zh), "server path %s does not include chroot path %s",
+        LOG_ERROR(zh, "server path %s does not include chroot path %s",
                    server_path, zh->chroot);
         return (char *) server_path;
     }
@@ -1738,17 +1749,17 @@ static void cleanup(zhandle_t *zh,int rc)
 {
     close(zh->fd);
     if (is_unrecoverable(zh)) {
-        LOG_DEBUG(LOGCALLBACK(zh), "Calling a watcher for a ZOO_SESSION_EVENT and the state=%s",
+        LOG_DEBUG(zh, "Calling a watcher for a ZOO_SESSION_EVENT and the state=%s",
                 state2String(zh->state));
         PROCESS_SESSION_EVENT(zh, zh->state);
     } else if (is_connected(zh)) {
-        LOG_DEBUG(LOGCALLBACK(zh), "Calling a watcher for a ZOO_SESSION_EVENT and the state=CONNECTING_STATE");
+        LOG_DEBUG(zh, "Calling a watcher for a ZOO_SESSION_EVENT and the state=CONNECTING_STATE");
         PROCESS_SESSION_EVENT(zh, ZOO_CONNECTING_STATE);
     }
     cleanup_bufs(zh,1,rc);
     zh->fd = -1;
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Previous connection=[%s] delay=%d", zoo_get_current_server(zh), zh->delay);
+    LOG_DEBUG(zh, "Previous connection=[%s] delay=%d", zoo_get_current_server(zh), zh->delay);
 
     if (!is_unrecoverable(zh)) {
         zh->state = 0;
@@ -1776,7 +1787,7 @@ static int handle_socket_error_msg(zhandle_t *zh, int line, int rc,
         char buf[1024];
         va_start(va,format);
         vsnprintf(buf, sizeof(buf)-1,format,va);
-        log_message(LOGCALLBACK(zh), ZOO_LOG_LEVEL_ERROR,line,__func__,
+        log_message(zh, ZOO_LOG_LEVEL_ERROR,line,__func__,
             "Socket [%s] zk retcode=%d, errno=%d(%s): %s",
             zoo_get_current_server(zh),rc,errno,strerror(errno),buf);
         va_end(va);
@@ -1807,11 +1818,11 @@ static void auth_completion_func(int rc, zhandle_t* zh)
     get_auth_completions(&zh->auth_h, &a_list);
     zoo_unlock_auth(zh);
     if (rc) {
-        LOG_ERROR(LOGCALLBACK(zh), "Authentication scheme %s failed. Connection closed.",
+        LOG_ERROR(zh, "Authentication scheme %s failed. Connection closed.",
                    zh->auth_h.auth->scheme);
     }
     else {
-        LOG_INFO(LOGCALLBACK(zh), "Authentication scheme %s succeeded", zh->auth_h.auth->scheme);
+        LOG_INFO(zh, "Authentication scheme %s succeeded", zh->auth_h.auth->scheme);
     }
     a_tmp = &a_list;
     // chain call user's completion function
@@ -1861,7 +1872,7 @@ static int send_auth_info(zhandle_t *zh) {
         auth = auth->next;
     }
     zoo_unlock_auth(zh);
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending all auth info request to %s", zoo_get_current_server(zh));
+    LOG_DEBUG(zh, "Sending all auth info request to %s", zoo_get_current_server(zh));
     return (rc <0) ? ZMARSHALLINGERROR:ZOK;
 }
 
@@ -1878,7 +1889,7 @@ static int send_last_auth_info(zhandle_t *zh)
     }
     rc = send_info_packet(zh, auth);
     zoo_unlock_auth(zh);
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending auth info request to %s",zoo_get_current_server(zh));
+    LOG_DEBUG(zh, "Sending auth info request to %s",zoo_get_current_server(zh));
     return (rc < 0)?ZMARSHALLINGERROR:ZOK;
 }
 
@@ -1925,7 +1936,7 @@ static int send_set_watches(zhandle_t *zh)
     free_key_list(req.dataWatches.data, req.dataWatches.count);
     free_key_list(req.existWatches.data, req.existWatches.count);
     free_key_list(req.childWatches.data, req.childWatches.count);
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending set watches request to %s",zoo_get_current_server(zh));
+    LOG_DEBUG(zh, "Sending set watches request to %s",zoo_get_current_server(zh));
     return (rc < 0)?ZMARSHALLINGERROR:ZOK;
 }
 
@@ -2173,7 +2184,7 @@ static void zookeeper_set_sock_nodelay(zhandle_t *zh, socket_t sock)
                     sizeof(enable_tcp_nodelay));
 
     if (rc) {
-        LOG_WARN(LOGCALLBACK(zh),
+        LOG_WARN(zh,
                  "Unable to set TCP_NODELAY, latency may be effected");
     }
 }
@@ -2195,7 +2206,7 @@ static socket_t zookeeper_connect(zhandle_t *zh,
     addr_len = sizeof(struct sockaddr_in);
 #endif
 
-    LOG_DEBUG(LOGCALLBACK(zh), "[zk] connect()\n");
+    LOG_DEBUG(zh, "[zk] connect()\n");
     rc = connect(fd, (struct sockaddr *)addr, addr_len);
 
 #ifdef _WIN32
@@ -2247,7 +2258,7 @@ int zookeeper_interest(zhandle_t *zh, socket_t *fd, int *interest,
         int max_exceed = zh->recv_timeout / 10 > 200 ? 200 :
                          (zh->recv_timeout / 10);
         if (time_left > max_exceed)
-            LOG_WARN(LOGCALLBACK(zh), "Exceeded deadline by %dms", time_left);
+            LOG_WARN(zh, "Exceeded deadline by %dms", time_left);
     }
     api_prolog(zh);
 
@@ -2276,7 +2287,7 @@ int zookeeper_interest(zhandle_t *zh, socket_t *fd, int *interest,
             *tv = get_timeval(zh->recv_timeout/60);
             zh->delay = 0;
 
-            LOG_WARN(LOGCALLBACK(zh), "Delaying connection after exhaustively trying all servers [%s]",
+            LOG_WARN(zh, "Delaying connection after exhaustively trying all servers [%s]",
                      zh->hostname);
         } else {
             if (addr_rw_server) {
@@ -2319,7 +2330,7 @@ int zookeeper_interest(zhandle_t *zh, socket_t *fd, int *interest,
                     return api_epilog(zh,rc);
                 }
 
-                LOG_INFO(LOGCALLBACK(zh),
+                LOG_INFO(zh,
                          "Initiated connection to server [%s]",
                          format_endpoint_info(&zh->addr_cur));
             }
@@ -2364,7 +2375,7 @@ int zookeeper_interest(zhandle_t *zh, socket_t *fd, int *interest,
                 if (zh->sent_requests.head == 0) {
                     rc = send_ping(zh);
                     if (rc < 0) {
-                        LOG_ERROR(LOGCALLBACK(zh), "failed to send PING request (zk retcode=%d)",rc);
+                        LOG_ERROR(zh, "failed to send PING request (zk retcode=%d)",rc);
                         return api_epilog(zh,rc);
                     }
                 }
@@ -2384,7 +2395,7 @@ int zookeeper_interest(zhandle_t *zh, socket_t *fd, int *interest,
                     struct sockaddr_storage addr;
                     addrvec_peek(&zh->addrs, &addr);
                     zh->ping_rw_timeout = MIN_RW_TIMEOUT;
-                    LOG_INFO(LOGCALLBACK(zh),
+                    LOG_INFO(zh,
                              "r/w server found at %s",
                              format_endpoint_info(&addr));
                     cleanup(zh, ZOK);
@@ -2436,7 +2447,7 @@ static int check_events(zhandle_t *zh, int events)
         if((rc=prime_connection(zh))!=0)
             return rc;
 
-        LOG_INFO(LOGCALLBACK(zh), "initiated connection to server [%s]", format_endpoint_info(&zh->addr_cur));
+        LOG_INFO(zh, "initiated connection to server [%s]", format_endpoint_info(&zh->addr_cur));
         return ZOK;
     }
     if (zh->to_send.head && (events&ZOOKEEPER_WRITE)) {
@@ -2484,7 +2495,7 @@ static int check_events(zhandle_t *zh, int events)
                     zh->state = zh->primer_storage.readOnly ?
                       ZOO_READONLY_STATE : ZOO_CONNECTED_STATE;
                     zh->reconfig = 0;
-                    LOG_INFO(LOGCALLBACK(zh),
+                    LOG_INFO(zh,
                              "session establishment complete on server [%s], sessionId=%#llx, negotiated timeout=%d %s",
                              format_endpoint_info(&zh->addr_cur),
                              newid, zh->recv_timeout,
@@ -2494,7 +2505,7 @@ static int check_events(zhandle_t *zh, int events)
                     send_set_watches(zh);
                     /* send the authentication packet now */
                     send_auth_info(zh);
-                    LOG_DEBUG(LOGCALLBACK(zh), "Calling a watcher for a ZOO_SESSION_EVENT and the state=ZOO_CONNECTED_STATE");
+                    LOG_DEBUG(zh, "Calling a watcher for a ZOO_SESSION_EVENT and the state=ZOO_CONNECTED_STATE");
                     zh->input_buffer = 0; // just in case the watcher calls zookeeper_process() again
                     PROCESS_SESSION_EVENT(zh, zh->state);
                 }
@@ -2552,7 +2563,7 @@ static int queue_session_event(zhandle_t *zh, int state)
     completion_list_t *cptr;
 
     if ((oa=create_buffer_oarchive())==NULL) {
-        LOG_ERROR(LOGCALLBACK(zh), "out of memory");
+        LOG_ERROR(zh, "out of memory");
         goto error;
     }
     rc = serialize_ReplyHeader(oa, "hdr", &hdr);
@@ -2634,7 +2645,7 @@ static void deserialize_response(zhandle_t *zh, int type, int xid, int failed, i
 {
     switch (type) {
     case COMPLETION_DATA:
-        LOG_DEBUG(LOGCALLBACK(zh), "Calling COMPLETION_DATA for xid=%#x failed=%d rc=%d",
+        LOG_DEBUG(zh, "Calling COMPLETION_DATA for xid=%#x failed=%d rc=%d",
                     cptr->xid, failed, rc);
         if (failed) {
             cptr->c.data_result(rc, 0, 0, 0, cptr->data);
@@ -2647,7 +2658,7 @@ static void deserialize_response(zhandle_t *zh, int type, int xid, int failed, i
         }
         break;
     case COMPLETION_STAT:
-        LOG_DEBUG(LOGCALLBACK(zh), "Calling COMPLETION_STAT for xid=%#x failed=%d rc=%d",
+        LOG_DEBUG(zh, "Calling COMPLETION_STAT for xid=%#x failed=%d rc=%d",
                     cptr->xid, failed, rc);
         if (failed) {
             cptr->c.stat_result(rc, 0, cptr->data);
@@ -2659,7 +2670,7 @@ static void deserialize_response(zhandle_t *zh, int type, int xid, int failed, i
         }
         break;
     case COMPLETION_STRINGLIST:
-        LOG_DEBUG(LOGCALLBACK(zh), "Calling COMPLETION_STRINGLIST for xid=%#x failed=%d rc=%d",
+        LOG_DEBUG(zh, "Calling COMPLETION_STRINGLIST for xid=%#x failed=%d rc=%d",
                     cptr->xid, failed, rc);
         if (failed) {
             cptr->c.strings_result(rc, 0, cptr->data);
@@ -2671,7 +2682,7 @@ static void deserialize_response(zhandle_t *zh, int type, int xid, int failed, i
         }
         break;
     case COMPLETION_STRINGLIST_STAT:
-        LOG_DEBUG(LOGCALLBACK(zh), "Calling COMPLETION_STRINGLIST_STAT for xid=%#x failed=%d rc=%d",
+        LOG_DEBUG(zh, "Calling COMPLETION_STRINGLIST_STAT for xid=%#x failed=%d rc=%d",
                     cptr->xid, failed, rc);
         if (failed) {
             cptr->c.strings_stat_result(rc, 0, 0, cptr->data);
@@ -2683,7 +2694,7 @@ static void deserialize_response(zhandle_t *zh, int type, int xid, int failed, i
         }
         break;
     case COMPLETION_STRING:
-        LOG_DEBUG(LOGCALLBACK(zh), "Calling COMPLETION_STRING for xid=%#x failed=%d, rc=%d",
+        LOG_DEBUG(zh, "Calling COMPLETION_STRING for xid=%#x failed=%d, rc=%d",
                     cptr->xid, failed, rc);
         if (failed) {
             cptr->c.string_result(rc, 0, cptr->data);
@@ -2696,7 +2707,7 @@ static void deserialize_response(zhandle_t *zh, int type, int xid, int failed, i
         }
         break;
     case COMPLETION_STRING_STAT:
-        LOG_DEBUG(LOGCALLBACK(zh), "Calling COMPLETION_STRING_STAT for xid=%#x failed=%d, rc=%d",
+        LOG_DEBUG(zh, "Calling COMPLETION_STRING_STAT for xid=%#x failed=%d, rc=%d",
                     cptr->xid, failed, rc);
         if (failed) {
             cptr->c.string_stat_result(rc, 0, 0, cptr->data);
@@ -2708,7 +2719,7 @@ static void deserialize_response(zhandle_t *zh, int type, int xid, int failed, i
         }
         break;
     case COMPLETION_ACLLIST:
-        LOG_DEBUG(LOGCALLBACK(zh), "Calling COMPLETION_ACLLIST for xid=%#x failed=%d rc=%d",
+        LOG_DEBUG(zh, "Calling COMPLETION_ACLLIST for xid=%#x failed=%d rc=%d",
                     cptr->xid, failed, rc);
         if (failed) {
             cptr->c.acl_result(rc, 0, 0, cptr->data);
@@ -2720,20 +2731,20 @@ static void deserialize_response(zhandle_t *zh, int type, int xid, int failed, i
         }
         break;
     case COMPLETION_VOID:
-        LOG_DEBUG(LOGCALLBACK(zh), "Calling COMPLETION_VOID for xid=%#x failed=%d rc=%d",
+        LOG_DEBUG(zh, "Calling COMPLETION_VOID for xid=%#x failed=%d rc=%d",
                     cptr->xid, failed, rc);
         assert(cptr->c.void_result);
         cptr->c.void_result(rc, cptr->data);
         break;
     case COMPLETION_MULTI:
-        LOG_DEBUG(LOGCALLBACK(zh), "Calling COMPLETION_MULTI for xid=%#x failed=%d rc=%d",
+        LOG_DEBUG(zh, "Calling COMPLETION_MULTI for xid=%#x failed=%d rc=%d",
                     cptr->xid, failed, rc);
         rc = deserialize_multi(zh, xid, cptr, ia);
         assert(cptr->c.void_result);
         cptr->c.void_result(rc, cptr->data);
         break;
     default:
-        LOG_DEBUG(LOGCALLBACK(zh), "Unsupported completion type=%d", cptr->c.type);
+        LOG_DEBUG(zh, "Unsupported completion type=%d", cptr->c.type);
     }
 }
 
@@ -2757,7 +2768,7 @@ void process_completions(zhandle_t *zh)
             type = evt.type;
             state = evt.state;
             /* This is a notification so there aren't any pending requests */
-            LOG_DEBUG(LOGCALLBACK(zh), "Calling a watcher for node [%s], type = %d event=%s",
+            LOG_DEBUG(zh, "Calling a watcher for node [%s], type = %d event=%s",
                        (evt.path==NULL?"NULL":evt.path), cptr->c.type,
                        watcherEvent2String(type));
             deliverWatchers(zh,type,state,evt.path, &cptr->c.watcher_result);
@@ -2806,7 +2817,7 @@ static void checkResponseLatency(zhandle_t* zh)
     get_system_time(&now);
     delay=calculate_interval(&zh->socket_readable, &now);
     if(delay>20)
-        LOG_DEBUG(LOGCALLBACK(zh), "The following server response has spent at least %dms sitting in the client socket recv buffer",delay);
+        LOG_DEBUG(zh, "The following server response has spent at least %dms sitting in the client socket recv buffer",delay);
 
     zh->socket_readable.tv_sec=zh->socket_readable.tv_usec=0;
 }
@@ -2840,7 +2851,7 @@ int zookeeper_process(zhandle_t *zh, int events)
             struct timeval now;
             gettimeofday(&now, 0);
             elapsed = calculate_interval(&zh->last_ping, &now);
-            LOG_DEBUG(LOGCALLBACK(zh), "Got ping response in %d ms", elapsed);
+            LOG_DEBUG(zh, "Got ping response in %d ms", elapsed);
             free_buffer(bptr);
         } else if (hdr.xid == WATCHER_EVENT_XID) {
             struct WatcherEvent evt;
@@ -2848,7 +2859,7 @@ int zookeeper_process(zhandle_t *zh, int events)
             char *path = NULL;
             completion_list_t *c = NULL;
 
-            LOG_DEBUG(LOGCALLBACK(zh), "Processing WATCHER_EVENT");
+            LOG_DEBUG(zh, "Processing WATCHER_EVENT");
 
             deserialize_WatcherEvent(ia, "event", &evt);
             type = evt.type;
@@ -2862,10 +2873,10 @@ int zookeeper_process(zhandle_t *zh, int events)
             deallocate_WatcherEvent(&evt);
             queue_completion(&zh->completions_to_process, c, 0);
         } else if (hdr.xid == SET_WATCHES_XID) {
-            LOG_DEBUG(LOGCALLBACK(zh), "Processing SET_WATCHES");
+            LOG_DEBUG(zh, "Processing SET_WATCHES");
             free_buffer(bptr);
         } else if (hdr.xid == AUTH_XID){
-            LOG_DEBUG(LOGCALLBACK(zh), "Processing AUTH_XID");
+            LOG_DEBUG(zh, "Processing AUTH_XID");
 
             /* special handling for the AUTH response as it may come back
              * out-of-band */
@@ -2885,7 +2896,7 @@ int zookeeper_process(zhandle_t *zh, int events)
 
             /* [ZOOKEEPER-804] Don't assert if zookeeper_close has been called. */
             if (zh->close_requested == 1 && cptr == NULL) {
-                LOG_DEBUG(LOGCALLBACK(zh), "Completion queue has been cleared by zookeeper_close()");
+                LOG_DEBUG(zh, "Completion queue has been cleared by zookeeper_close()");
                 close_buffer_iarchive(&ia);
                 free_buffer(bptr);
                 return api_epilog(zh,ZINVALIDSTATE);
@@ -2893,7 +2904,7 @@ int zookeeper_process(zhandle_t *zh, int events)
             assert(cptr);
             /* The requests are going to come back in order */
             if (cptr->xid != hdr.xid) {
-                LOG_DEBUG(LOGCALLBACK(zh), "Processing unexpected or out-of-order response!");
+                LOG_DEBUG(zh, "Processing unexpected or out-of-order response!");
 
                 // received unexpected (or out-of-order) response
                 close_buffer_iarchive(&ia);
@@ -2915,7 +2926,7 @@ int zookeeper_process(zhandle_t *zh, int events)
             deactivateWatcher(zh, cptr->watcher_deregistration, rc);
 
             if (cptr->c.void_result != SYNCHRONOUS_MARKER) {
-                LOG_DEBUG(LOGCALLBACK(zh), "Queueing asynchronous response");
+                LOG_DEBUG(zh, "Queueing asynchronous response");
                 cptr->buffer = bptr;
                 queue_completion(&zh->completions_to_process, cptr, 0);
             } else {
@@ -3017,7 +3028,7 @@ static completion_list_t* do_create_completion_entry(zhandle_t *zh, int xid,
 {
     completion_list_t *c = calloc(1, sizeof(completion_list_t));
     if (!c) {
-        LOG_ERROR(LOGCALLBACK(zh), "out of memory");
+        LOG_ERROR(zh, "out of memory");
         return 0;
     }
     c->c.type = completion_type;
@@ -3223,7 +3234,7 @@ int zookeeper_close(zhandle_t *zh)
     if (is_connected(zh)){
         struct oarchive *oa;
         struct RequestHeader h = {get_xid(), ZOO_CLOSE_OP};
-        LOG_INFO(LOGCALLBACK(zh), "Closing zookeeper sessionId=%#llx to [%s]\n",
+        LOG_INFO(zh, "Closing zookeeper sessionId=%#llx to [%s]\n",
                 zh->client_id.client_id,zoo_get_current_server(zh));
         oa = create_buffer_oarchive();
         rc = serialize_RequestHeader(oa, "header", &h);
@@ -3240,7 +3251,7 @@ int zookeeper_close(zhandle_t *zh)
          * (but reasonable) number of milliseconds since we want the call to block*/
         rc=adaptor_send_queue(zh, 3000);
     }else{
-        LOG_INFO(LOGCALLBACK(zh), "Freeing zookeeper resources for sessionId=%#llx\n",
+        LOG_INFO(zh, "Freeing zookeeper resources for sessionId=%#llx\n",
                 zh->client_id.client_id);
         rc = ZOK;
     }
@@ -3373,7 +3384,7 @@ int zoo_awget(zhandle_t *zh, const char *path,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
             zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3417,7 +3428,7 @@ int zoo_awgetconfig(zhandle_t *zh, watcher_fn watcher, void* watcherCtx,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
                zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3454,7 +3465,7 @@ int zoo_areconfig(zhandle_t *zh, const char *joining, const char *leaving,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending Reconfig request xid=%#x to %s",h.xid, zoo_get_current_server(zh));
+    LOG_DEBUG(zh, "Sending Reconfig request xid=%#x to %s",h.xid, zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
 
@@ -3499,7 +3510,7 @@ int zoo_aset(zhandle_t *zh, const char *path, const char *buffer, int buflen,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
             zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3555,7 +3566,7 @@ int zoo_acreate(zhandle_t *zh, const char *path, const char *value,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
             zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3586,7 +3597,7 @@ int zoo_acreate2(zhandle_t *zh, const char *path, const char *value,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
             zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3626,7 +3637,7 @@ int zoo_adelete(zhandle_t *zh, const char *path, int version,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
             zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3665,7 +3676,7 @@ int zoo_awexists(zhandle_t *zh, const char *path,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
             zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3698,7 +3709,7 @@ static int zoo_awget_children_(zhandle_t *zh, const char *path,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
             zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3746,7 +3757,7 @@ static int zoo_awget_children2_(zhandle_t *zh, const char *path,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
             zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3789,7 +3800,7 @@ int zoo_async(zhandle_t *zh, const char *path,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
             zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3819,7 +3830,7 @@ int zoo_aget_acl(zhandle_t *zh, const char *path, acl_completion_t completion,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
             zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3850,7 +3861,7 @@ int zoo_aset_acl(zhandle_t *zh, const char *path, int version,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",h.xid,path,
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",h.xid,path,
             zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -3991,7 +4002,7 @@ int zoo_amulti(zhandle_t *zh, int count, const zoo_op_t *ops,
             }
 
             default:
-                LOG_ERROR(LOGCALLBACK(zh), "Unimplemented sub-op type=%d in multi-op", op->type);
+                LOG_ERROR(zh, "Unimplemented sub-op type=%d in multi-op", op->type);
                 return ZUNIMPLEMENTED;
         }
 
@@ -4010,7 +4021,7 @@ int zoo_amulti(zhandle_t *zh, int count, const zoo_op_t *ops,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending multi request xid=%#x with %d subrequests to %s",
+    LOG_DEBUG(zh, "Sending multi request xid=%#x with %d subrequests to %s",
             h.xid, index, zoo_get_current_server(zh));
     /* make a best (non-blocking) effort to send the requests asap */
     adaptor_send_queue(zh, 0);
@@ -4079,7 +4090,7 @@ int zoo_aremove_watchers(zhandle_t *zh, const char *path, ZooWatcherType wtype,
     /* We queued the buffer, so don't free it */
     close_buffer_oarchive(&oa, 0);
 
-    LOG_DEBUG(LOGCALLBACK(zh), "Sending request xid=%#x for path [%s] to %s",
+    LOG_DEBUG(zh, "Sending request xid=%#x for path [%s] to %s",
               h.xid, path, zoo_get_current_server(zh));
 
     adaptor_send_queue(zh, 0);
@@ -4377,6 +4388,27 @@ void zoo_set_log_callback(zhandle_t *zh, log_callback_fn callback)
     zh->log_callback = callback;
 }
 
+void zoo_get_log_callback_ext(const zhandle_t *zh,
+    log_callback_ext_fn *callback, const void **context)
+{
+    if (zh == NULL) {
+        *callback = NULL;
+        *context = NULL;
+    } else {
+        *callback = zh->log_callback_ext;
+        *context = zh->log_callback_ext_context;
+    }
+}
+
+void zoo_set_log_callback_ext(zhandle_t *zh,
+    log_callback_ext_fn callback, const void *context)
+{
+    if (zh != NULL) {
+        zh->log_callback_ext = callback;
+        zh->log_callback_ext_context = context;
+    }
+}
+
 void zoo_deterministic_conn_order(int yesOrNo)
 {
     disable_conn_permute=yesOrNo;
@@ -4389,7 +4421,7 @@ static void process_sync_completion(zhandle_t *zh,
         struct sync_completion *sc,
         struct iarchive *ia)
 {
-    LOG_DEBUG(LOGCALLBACK(zh), "Processing sync_completion with type=%d xid=%#x rc=%d",
+    LOG_DEBUG(zh, "Processing sync_completion with type=%d xid=%#x rc=%d",
             cptr->c.type, cptr->xid, sc->rc);
 
     switch(cptr->c.type) {
@@ -4497,7 +4529,7 @@ static void process_sync_completion(zhandle_t *zh,
         sc->rc = deserialize_multi(zh, cptr->xid, cptr, ia);
         break;
     default:
-        LOG_DEBUG(LOGCALLBACK(zh), "Unsupported completion type=%d", cptr->c.type);
+        LOG_DEBUG(zh, "Unsupported completion type=%d", cptr->c.type);
         break;
     }
 }

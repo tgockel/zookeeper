@@ -452,6 +452,16 @@ typedef void (*watcher_fn)(zhandle_t *zh, int type,
 typedef void (*log_callback_fn)(const char *message);
 
 /**
+ * \brief typedef for setting the extended log callback. It's a function pointer
+ * which returns void and accepts the zhandle, a user context, the log level and
+ * the message as a const char*.
+ *
+ * \param message message to be passed to the callback function.
+ */
+typedef void (*log_callback_ext_fn)(const zhandle_t *zh,
+    const void *log_context, ZooLogLevel level, const char *message);
+
+/**
  * \brief create a handle to used communicate with zookeeper.
  *
  * This method creates a new handle and a zookeeper session that corresponds
@@ -520,6 +530,10 @@ ZOOAPI zhandle_t *zookeeper_init(const char *host, watcher_fn fn,
 ZOOAPI zhandle_t *zookeeper_init2(const char *host, watcher_fn fn,
   int recv_timeout, const clientid_t *clientid, void *context, int flags,
   log_callback_fn log_callback);
+
+ZOOAPI zhandle_t *zookeeper_init3(const char *host, watcher_fn fn,
+  int recv_timeout, const clientid_t *clientid, void *context, int flags,
+  log_callback_ext_fn log_callback, const void *log_callback_context);
 
 /**
  * \brief update the list of servers this client will connect to.
@@ -1475,11 +1489,13 @@ ZOOAPI void zoo_set_log_stream(FILE* logStream);
  * \brief gets the callback to be used by this connection for logging.
  *
  * This is a per-connection logging mechanism that will take priority over
- * the library-wide default log stream. That is, zookeeper library will first
- * try to use a per-connection callback if available and if not, will fallback
- * to using the logging stream. Passing in NULL resets the callback and will
- * cause it to then fallback to using the logging stream as described in \ref
- * zoo_set_log_stream.
+ * the library-wide default log stream, but has lower precedence than the
+ * extended callback. That is, zookeeper library will first try to use a
+ * per-connection extended callback if available, then will fall back to the
+ * simple per-conneciton callback, and will finally fall back to using the
+ * logging stream. Passing in NULL resets the callback and will cause it to
+ * then fall back to using the logging stream as described in
+ * \ref zoo_set_log_stream.
  */
 ZOOAPI log_callback_fn zoo_get_log_callback(const zhandle_t *zh);
 
@@ -1487,15 +1503,51 @@ ZOOAPI log_callback_fn zoo_get_log_callback(const zhandle_t *zh);
  * \brief sets the callback to be used by the library for logging
  *
  * Setting this callback has the effect of overriding the default log stream.
- * Zookeeper will first try to use a per-connection callback if available
- * and if not, will fallback to using the logging stream. Passing in NULL
- * resets the callback and will cause it to then fallback to using the logging
- * stream as described in \ref zoo_set_log_stream.
+ * Zookeeper will first try to use a per-connection extended callback described
+ * in \ref zoo_set_log_callback_ext if available, then will fall back to this
+ * simple per-conneciton callback, and if not, will fall back to using the
+ * logging stream. Passing in NULL resets the callback and will cause it to
+ * then fall back to using the logging stream as described in
+ * \ref zoo_set_log_stream.
  *
  * Note: The provided callback will be invoked by multiple threads and therefore
  * it needs to be thread-safe.
  */
 ZOOAPI void zoo_set_log_callback(zhandle_t *zh, log_callback_fn callback);
+
+/**
+ * \brief gets the extended callback and context to be used by this connection
+ * for logging.
+ *
+ * This is a per-connection extended logging mechanism that will take priority
+ * over both the simple per-connection logging (\ref zoo_get_log_callback) and
+ * the library-wide default log stream. That is, zookeeper library will first
+ * try to use a per-connection extended callback if available, then will fall
+ * back to the simple per-conneciton callback, and will finally fall back to
+ * using the logging stream. Passing in NULL resets the callback and will cause
+ * it to then fall back to using the logging stream as described in
+ * \ref zoo_set_log_stream.
+ */
+ZOOAPI void zoo_get_log_callback_ext(const zhandle_t *zh,
+    log_callback_ext_fn *callback, const void **context);
+
+/**
+ * \brief sets the extended callback to be used by the library for logging
+ *
+ * Setting this callback has the effect of overriding the default log stream and
+ * the simple per-connection callback described in \ref zoo_set_log_callback.
+ * Zookeeper will first try to use this per-connection extended callback if
+ * available, then will fall back to the simple per-conneciton callback, and if
+ * not, will fall back to using the logging stream. Passing in NULL as the
+ * callback argument resets the callback and will cause it to then fall back to
+ * either the simple per-connection callback or the logging stream as described
+ * in \ref zoo_set_log_stream.
+ *
+ * Note: The provided callback will be invoked by multiple threads and therefore
+ * it needs to be thread-safe.
+ */
+ZOOAPI void zoo_set_log_callback_ext(zhandle_t *zh,
+    log_callback_ext_fn callback, const void *context);
 
 /**
  * \brief enable/disable quorum endpoint order randomization

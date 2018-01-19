@@ -34,6 +34,7 @@ using namespace std;
 
 #include <cstring>
 #include <list>
+#include <vector>
 
 #include <zookeeper.h>
 #include <errno.h>
@@ -56,6 +57,27 @@ list<string> logMessages;
 void logMessageHandler(const char* message) {
     cout << "Log Message Received: [" << message << "]" << endl;
     logMessages.push_back(message);
+}
+
+struct RecordedMessage {
+    const zhandle_t* zh;
+    const void* context;
+    ZooLogLevel level;
+    string message;
+
+    RecordedMessage(const zhandle_t* zh, const void* context, ZooLogLevel level, const string& message) :
+            zh(zh),
+            context(context),
+            level(level),
+            message(message)
+    {
+    }
+};
+
+vector<RecordedMessage> logMessagesExt;
+void logMessageExtHandler(const zhandle_t* zh, const void* context, ZooLogLevel level, const char* message) {
+    cout << "Log Message Ext Received: [" << message << "]" << endl;
+    logMessagesExt.push_back(RecordedMessage(zh, context, level, message));
 }
 
 static int Stat_eq(struct Stat* a, struct Stat* b)
@@ -201,13 +223,16 @@ class Zookeeper_simpleSystem : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(testLogCallbackSet);
     CPPUNIT_TEST(testLogCallbackInit);
     CPPUNIT_TEST(testLogCallbackClear);
+    CPPUNIT_TEST(testLogCallbackExtSet);
+    CPPUNIT_TEST(testLogCallbackExtInit);
+    CPPUNIT_TEST(testLogCallbackExtClear);
     CPPUNIT_TEST(testAsyncWatcherAutoReset);
     CPPUNIT_TEST(testDeserializeString);
     CPPUNIT_TEST(testFirstServerDown);
 #ifdef THREADED
-    CPPUNIT_TEST(testNullData);
+     CPPUNIT_TEST(testNullData);
 #ifdef ZOO_IPV6_ENABLED
-    CPPUNIT_TEST(testIPV6);
+     CPPUNIT_TEST(testIPV6);
 #endif
     CPPUNIT_TEST(testCreate);
     CPPUNIT_TEST(testPath);
@@ -253,6 +278,13 @@ class Zookeeper_simpleSystem : public CPPUNIT_NS::TestFixture
 
     zhandle_t *createClient(watchctx_t *ctx, log_callback_fn logCallback) {
         zhandle_t *zk = zookeeper_init2(hostPorts, watcher, 10000, 0, ctx, 0, logCallback);
+        ctx->zh = zk;
+        sleep(1);
+        return zk;
+    }
+
+    zhandle_t *createClient(watchctx_t *ctx, log_callback_ext_fn logCallback, const void* log_context) {
+        zhandle_t *zk = zookeeper_init3(hostPorts, watcher, 10000, 0, ctx, 0, logCallback, log_context);
         ctx->zh = zk;
         sleep(1);
         return zk;
@@ -972,7 +1004,7 @@ public:
         int expected = 10;
         for (int i = 0; i < expected; i++)
         {
-            LOG_INFO(LOGCALLBACK(zk), "%s #%d", __FUNCTION__, i);
+            LOG_INFO(zk, "%s #%d", __FUNCTION__, i);
         }
         CPPUNIT_ASSERT(expected == logMessages.size());
     }
@@ -994,7 +1026,7 @@ public:
         int expected = 10;
         for (int i = 0; i < expected; i++)
         {
-            LOG_INFO(LOGCALLBACK(zk), "%s #%d", __FUNCTION__, i);
+            LOG_INFO(zk, "%s #%d", __FUNCTION__, i);
         }
         CPPUNIT_ASSERT(logMessages.size() == numBefore + expected);
     }
@@ -1016,8 +1048,107 @@ public:
         zoo_set_log_callback(zk, NULL);
 
         // Future log messages should go to logstream not callback
-        LOG_INFO(LOGCALLBACK(zk), __FUNCTION__);
+        LOG_INFO(zk, __FUNCTION__);
         int numAfter = logMessages.size();
+        CPPUNIT_ASSERT_EQUAL(numBefore, numAfter);
+    }
+
+    // Test creating normal handle via zookeeper_init then explicitly setting callback
+    void testLogCallbackExtSet()
+    {
+        watchctx_t ctx;
+        CPPUNIT_ASSERT(logMessagesExt.empty());
+        zhandle_t *zk = createClient(&ctx);
+
+        int log_context;
+        zoo_set_log_callback_ext(zk, &logMessageExtHandler, &log_context);
+        {
+            log_callback_ext_fn found_callback_ext;
+            const void* found_context;
+            zoo_get_log_callback_ext(zk, &found_callback_ext, &found_context);
+            CPPUNIT_ASSERT_EQUAL(&logMessageExtHandler, found_callback_ext);
+            CPPUNIT_ASSERT(found_context == &log_context);
+        }
+
+        // Log 10 messages and ensure all go to callback
+        unsigned expected = 10;
+        for (unsigned i = 0; i < expected; i++)
+        {
+            LOG_INFO(zk, "%s #%d", __FUNCTION__, i);
+        }
+        CPPUNIT_ASSERT(expected == logMessagesExt.size());
+        for (unsigned i = 0; i < logMessagesExt.size(); i++)
+        {
+            const RecordedMessage& msg = logMessagesExt.at(i);
+            CPPUNIT_ASSERT(zk == msg.zh);
+            CPPUNIT_ASSERT(&log_context == msg.context);
+            CPPUNIT_ASSERT_EQUAL(ZOO_LOG_LEVEL_INFO, msg.level);
+        }
+    }
+
+    // Test creating handle via zookeeper_init3 to ensure all connection messages go to callback
+    void testLogCallbackExtInit()
+    {
+        logMessagesExt.clear();
+        watchctx_t ctx;
+        int log_context;
+        zhandle_t *zk = createClient(&ctx, &logMessageExtHandler, &log_context);
+        {
+            log_callback_ext_fn found_callback_ext;
+            const void* found_context;
+            zoo_get_log_callback_ext(zk, &found_callback_ext, &found_context);
+            CPPUNIT_ASSERT_EQUAL(&logMessageExtHandler, found_callback_ext);
+            CPPUNIT_ASSERT(found_context == &log_context);
+        }
+
+        // All the connection messages should have gone to the callback -- don't
+        // want this to be a maintenance issue so we're not asserting exact count
+        unsigned numBefore = logMessagesExt.size();
+        CPPUNIT_ASSERT(numBefore > 0U);
+
+        // Log 10 messages and ensure all go to callback
+        unsigned expected = 10;
+        for (unsigned i = 0; i < expected; i++)
+        {
+            LOG_INFO(zk, "%s #%d", __FUNCTION__, i);
+        }
+        CPPUNIT_ASSERT(logMessagesExt.size() == numBefore + expected);
+        for (unsigned i = 0; i < logMessagesExt.size(); i++)
+        {
+            const RecordedMessage& msg = logMessagesExt.at(i);
+            CPPUNIT_ASSERT(zk == msg.zh);
+            CPPUNIT_ASSERT(&log_context == msg.context);
+            // do not check the level here -- other log messages from regular
+            // client activity will have different levels
+        }
+    }
+
+    // Test clearing log callback -- logging should resume going to logstream
+    void testLogCallbackExtClear()
+    {
+        logMessagesExt.clear();
+        watchctx_t ctx;
+        int log_context;
+        zhandle_t *zk = createClient(&ctx, &logMessageExtHandler, &log_context);
+        {
+            log_callback_ext_fn found_callback_ext;
+            const void* found_context;
+            zoo_get_log_callback_ext(zk, &found_callback_ext, &found_context);
+            CPPUNIT_ASSERT_EQUAL(&logMessageExtHandler, found_callback_ext);
+            CPPUNIT_ASSERT(found_context == &log_context);
+        }
+
+        // All the connection messages should have gone to the callback -- again, we don't
+        // want this to be a maintenance issue so we're not asserting exact count
+        unsigned numBefore = logMessagesExt.size();
+        CPPUNIT_ASSERT(numBefore > 0U);
+
+        // Clear log_callback
+        zoo_set_log_callback_ext(zk, NULL, NULL);
+
+        // Future log messages should go to logstream not callback
+        LOG_INFO(zk, __FUNCTION__);
+        unsigned numAfter = logMessagesExt.size();
         CPPUNIT_ASSERT_EQUAL(numBefore, numAfter);
     }
 
